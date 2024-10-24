@@ -10,18 +10,34 @@ class InvalidCurrencyError(Exception):
 class InvalidAmountError(Exception):
     pass
 
-#Abstract
+# Abstract base class for exchange rate providers
 class ExchangeRateProvider(ABC):
     @abstractmethod
     def get_rate(self, from_currency: str, to_currency: str) -> float:
         pass
 
-#Observer Pattern for update rates
+    @abstractmethod
+    def fetch_rates(self) -> Dict[str, float]:
+        pass
+
+    @abstractmethod
+    def update_rates(self, interval: int):
+        pass
+
+    @abstractmethod
+    def start_auto_update(self, interval: int):
+        pass
+
+    @abstractmethod
+    def get_provider_name(self) -> str:
+        pass
+
+# Concrete implementation of online rate provider
 class OnlineRateProvider(ExchangeRateProvider):
     def __init__(self, supported_currencies: List[str]):
         self.base_url = "https://api.exchangerate-api.com/v4/latest/USD"
         self.supported_currencies = supported_currencies
-        self.observers: List[Callable] = []  #Initialize observers list
+        self.observers: List[Callable] = []
         self.rates = self.fetch_rates()
 
     def fetch_rates(self) -> Dict[str, float]:
@@ -53,18 +69,19 @@ class OnlineRateProvider(ExchangeRateProvider):
             observer()
 
     def update_rates(self, interval: int = 3600):
-        """Update rates periodically"""
         while True:
             time.sleep(interval)
             self.rates = self.fetch_rates()
 
     def start_auto_update(self, interval: int = 3600):
-        """Start auto-updating rates in a separate thread"""
         thread = threading.Thread(target=self.update_rates, args=(interval,))
         thread.daemon = True
         thread.start()
 
-#singleton for improve only on instance of ExchangeRateManager
+    def get_provider_name(self) -> str:
+        return "Online Provider"
+
+# Singleton decorator
 def singleton(cls):
     instances = {}
     def get_instance(*args, **kwargs):
@@ -89,6 +106,12 @@ class ExchangeRateManager:
         except ValueError:
             raise InvalidCurrencyError(f"Invalid currency: {from_currency} or {to_currency}")
 
+    # OCP:
+    def get_provider_name(self) -> str:
+        if not self.provider:
+            raise ValueError("No exchange rate provider set")
+        return self.provider.get_provider_name()
+
 class CurrencyConverter:
     def __init__(self, exchange_rate_manager: ExchangeRateManager):
         self.exchange_rate_manager = exchange_rate_manager
@@ -99,21 +122,23 @@ class CurrencyConverter:
         rate = self.exchange_rate_manager.get_rate(from_currency, to_currency)
         return amount * rate
 
-#Design Pattern Factory for create provider
+    # OCP
+    def get_provider_name(self) -> str:
+        return self.exchange_rate_manager.get_provider_name()
+
+# Factory for creating providers
 class ExchangeRateProviderFactory:
     @staticmethod
-    def create_provider(provider_type: str, supported_currencies: List[str]) -> ExchangeRateProvider:
+    def create_provider(provider_type: str, **kwargs) -> ExchangeRateProvider:
         if provider_type == "online":
-            return OnlineRateProvider(supported_currencies)
-        # Add more provider types here if needed
+            return OnlineRateProvider(kwargs.get('supported_currencies', []))
+        elif provider_type == "fixed":
+            return FixedRateProvider(kwargs.get('fixed_rates', {}))
         raise ValueError(f"Unknown provider type: {provider_type}")
 
 if __name__ == "__main__":
     supported_currencies = ["USD", "BRL", "EUR", "GBP", "CNY"]
-    provider = ExchangeRateProviderFactory.create_provider("online", supported_currencies)
+    provider = ExchangeRateProviderFactory.create_provider("online", supported_currencies=supported_currencies)
     manager = ExchangeRateManager()
     manager.set_provider(provider)
     converter = CurrencyConverter(manager)
-    # Example usage
-    result = converter.convert(100, "USD", "EUR")
-    print(f"100 USD = {result:.2f} EUR")
