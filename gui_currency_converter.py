@@ -28,7 +28,8 @@ class GUICurrencyConverter(tk.Tk):
                 "BRL": "Brazilian Real",
                 "EUR": "Euro",
                 "GBP": "British Pound",
-                "CNY": "Chinese Yuan"
+                "CNY": "Chinese Yuan",
+                "ARS": "Argentine Peso"
             },
             "pt": {
                 "title": "Conversor de Moedas",
@@ -45,12 +46,13 @@ class GUICurrencyConverter(tk.Tk):
                 "BRL": "Real Brasileiro",
                 "EUR": "Euro",
                 "GBP": "Libra Esterlina",
-                "CNY": "Yuan Chinês"
+                "CNY": "Yuan Chinês",
+                "ARS": "Peso Argentino"
             }
         }
 
-        self.supported_currencies = ["USD", "BRL", "EUR", "GBP", "CNY"]
-        self.currency_symbols = {"USD": "$", "BRL": "R$", "EUR": "€", "GBP": "£", "CNY": "¥"}
+        self.supported_currencies = ["USD", "BRL", "EUR", "GBP", "CNY", "ARS"]
+        self.currency_symbols = {"USD": "$", "BRL": "R$", "EUR": "€", "GBP": "£", "CNY": "¥", "ARS": "$"}
         self.create_widgets()
         self.update_language() 
 
@@ -148,7 +150,7 @@ class GUICurrencyConverter(tk.Tk):
             messagebox.showerror(self.translate("error"), self.translate("invalid_currency"))
 
 if __name__ == "__main__":
-    supported_currencies = ["USD", "BRL", "EUR", "GBP", "CNY"]
+    supported_currencies = ["USD", "BRL", "EUR", "GBP", "CNY", "ARS"]
     provider = ExchangeRateProviderFactory.create_provider("online", supported_currencies)
     manager = ExchangeRateManager()
     manager.set_provider(provider)
